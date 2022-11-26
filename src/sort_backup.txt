@@ -1,0 +1,98 @@
+void SORT::TestSORT(void){
+    if(cluster_.size() > 0){
+        // 1. make tracking detection data and push back to detData_.
+        MakeBbox();
+
+        // 2. group detData_ by frame
+        int maxFrame = 0;
+        for(auto tb : detData_){
+            if(maxFrame < tb.frame) maxFrame = tb.frame;
+        }
+        std::cout << "maxFrame : " << maxFrame << std::endl;
+
+        std::vector<std::vector<TrackingBox>> detFrameData;
+        std::vector<TrackingBox> tempVec;
+        for(int i = 0; i < maxFrame; i++){
+            for(auto tb : detData_){
+                if(tb.frame = i + 1) 
+                    tempVec.push_back(tb);
+            }
+            detFrameData.push_back(tempVec);
+            tempVec.clear();
+        }
+        std::cout << "detData_ size : " << detData_.size() << std::endl;
+        std::cout << "detCurData_ size : " << detCurData_.size() << std::endl;
+        std::cout << "detFrameData size : " << detFrameData.size() << std::endl;
+
+        // 3. update across frames
+        int frame_count = 0;
+        int max_age = 1;
+        int min_hits = 3;
+        double iouThreshold = 0.3;
+        KalmanTracker::kf_count = 0; // tracking id relies on this, so we have to reset it in each seq.
+
+        // variables used in the for-loop
+        std::vector<cv::Rect_<float>> predictedBoxes;
+        std::vector<std::vector<double>> iouMatrix;
+        std::vector<int> assignment;
+        set<int> unmatchedDetections;
+        set<int> unmatchedTrajectories;
+        set<int> allItems;
+        set<int> matchedItems;
+        std::vector<cv::Point> matchedPairs;
+        std::vector<TrackingBox> frameTrackingResult;
+        unsigned int trkNum = 0;
+        unsigned int detNum = 0;
+
+        //////////////////////////////////////////////
+        // main
+        if(detCurData_.size() > 0){
+            // Initialize
+            if(trackers_.size() == 0){
+                // initialize kalman trackers using first detections.
+                for (unsigned int i = 0; i < detCurData_.size(); i++){
+                    KalmanTracker trk = KalmanTracker(detCurData_[i].box);
+                    trackers_.push_back(trk);
+                }
+            }
+            ///////////////////////////////////////
+            // 3.1. get predicted locations from existing trackers
+            std::cout << "trackers size : " << trackers_.size() << std::endl;
+            predictedBoxes.clear();
+            for(int i = 0; i < trackers_.size(); i++){
+                cv::Rect_<float> pBox = trackers_[i].predict();
+                // std::cout << "x, y : " << pBox.x << ", " << pBox.y << std::endl;
+                predictedBoxes.push_back(pBox);
+            }
+
+            ///////////////////////////////////////
+            // 3.2. associate detections to tracked object (both represented as bounding boxes)
+            trkNum = predictedBoxes.size();
+            detNum = detCurData_.size();
+            std::cout << "trk det : " << trkNum << ", " << detNum << std::endl;
+
+            iouMatrix.clear();
+            iouMatrix.resize(trkNum, std::vector<double>(detNum, 0));
+
+            for(unsigned int i = 0; i < trkNum; i++){
+                for(unsigned int j = 0; j < detNum; j++){
+                    iouMatrix[i][j] = 1 - GetIOU(predictedBoxes[i], detCurData_[j].box);
+                }
+            }
+            std::cout << "iouMatrix" << std::endl;
+            for(int i = 0; i < trkNum; i++){
+                for(int j = 0; j < detNum; j++){
+                    std::cout << iouMatrix[i][j] << std::endl;
+                }
+            }
+
+            // solve the assignment problem using hungarian algorithm.
+		    // the resulting assignment is [track(prediction) : detection], with len=preNum
+            HungarianAlgorithm HungAlgo;
+            assignment.clear();
+            // HungAlgo.Solve(iouMatrix, assignment);
+
+        }
+        /****************************************************************************************************/
+    }
+}

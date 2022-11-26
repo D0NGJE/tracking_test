@@ -22,6 +22,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl_ros/point_cloud.h>
 
+
 typedef struct Point_{
     pcl::PointXYZI p;
     int clusterID;

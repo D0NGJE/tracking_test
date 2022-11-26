@@ -109,7 +109,7 @@ pcl::PointCloud<pcl::PointXYZI> LXY2UTM::TransformationPc(pcl::PointCloud<pcl::P
 		temp.x = tr_mat(0,0) * cur.x + tr_mat(0,1) * cur.y + tr_mat(0,2) * cur.z + tr_mat(0,3);
 		temp.y = tr_mat(1,0) * cur.x + tr_mat(1,1) * cur.y + tr_mat(1,2) * cur.z + tr_mat(1,3);
 		temp.z = tr_mat(2,0) * cur.x + tr_mat(2,1) * cur.y + tr_mat(2,2) * cur.z + tr_mat(2,3);
-        temp.intensity = cur.intensity;
+    temp.intensity = cur.intensity;
 		output.push_back(temp);
 	}
 	return output;
@@ -329,11 +329,11 @@ void LXY2UTM::LidarCallBack(const sensor_msgs::PointCloud2ConstPtr lidar_input_m
   WGS2UTM(cur_gps_.latitude, cur_gps_.longitude, cur_E, cur_N);
   double ref_E, ref_N = 0;
   WGS2UTM(ref_lat_, ref_lon_, ref_E, ref_N);
-  // std::cout << std::setprecision(11)  << cur_gps_.time_stamp << ", "
-  //           << cur_gps_.latitude << ", " << cur_gps_.longitude << ", "
-  //           << cur_gps_.heading << ", " << cur_gps_.velocity << ", "
-  //           << cur_gps_.roll << ", " << cur_gps_.pitch << ", " 
-  //           << cur_E << ", " << cur_N << std::endl;
+  std::cout << std::setprecision(11)  << cur_gps_.time_stamp << ", "
+            << cur_gps_.latitude << ", " << cur_gps_.longitude << ", "
+            << cur_gps_.heading << ", " << cur_gps_.velocity << ", "
+            << cur_gps_.roll << ", " << cur_gps_.pitch << ", " 
+            << cur_E << ", " << cur_N << std::endl;
   pcl::PointCloud<pcl::PointXYZI>::Ptr lidar_input(new pcl::PointCloud<pcl::PointXYZI>);
   pcl::PointCloud<pcl::PointXYZI>::Ptr lidar_north(new pcl::PointCloud<pcl::PointXYZI>);
   pcl::PointCloud<pcl::PointXYZI>::Ptr lidar_output(new pcl::PointCloud<pcl::PointXYZI>);
@@ -352,20 +352,31 @@ void LXY2UTM::LidarCallBack(const sensor_msgs::PointCloud2ConstPtr lidar_input_m
   double heading_rad = cur_gps_.heading * M_PI / 180;
   Eigen::Matrix4f transform_north = Eigen::Matrix4f::Identity();
   *lidar_north = XY2Global(*lidar_input, 180 - cur_gps_.heading, 0, 0);
-  std::cout << cur_gps_.heading << std::endl;
+  // std::cout << cur_gps_.heading << std::endl;
   std::fstream file2;
-  file2.open("/home/dj/paper_ws/src/tracking_test/img_data/lidar_global.txt", std::ios::out);
+  file2.open("/home/dj/paper_ws/src/tracking_test/img_data/lidar_rotate.txt", std::ios::out);
   for(int i = 0;i < lidar_north->points.size(); i++){
     if(!isnan(lidar_north->points[i].x) && !isnan(lidar_north->points[i].y)){
       pcl::PointXYZI temp = lidar_north->points[i];
-      pcl::PointXYZI global_temp = temp;
-      global_temp.x = temp.x + cur_E;
-      global_temp.y = temp.x + cur_N;
       file2 << std::setprecision(11)<<  temp.x << ", " << temp.y << std::endl;
     }
   }
   file2.close();
   std::cout << "file2 write" << std::endl;
+
+  std::fstream file3;
+  file3.open("/home/dj/paper_ws/src/tracking_test/img_data/lidar_global.txt", std::ios::out);
+  for(int i = 0;i < lidar_north->points.size(); i++){
+    if(!isnan(lidar_north->points[i].x) && !isnan(lidar_north->points[i].y)){
+      pcl::PointXYZI global_temp;
+      global_temp.x = lidar_north->points[i].x + cur_E;
+      global_temp.y = lidar_north->points[i].y + cur_N;
+      file3 << std::setprecision(11)<<  global_temp.x << ", " << global_temp.y << std::endl;
+    }
+  }
+  file3.close();
+  std::cout << "file3 write" << std::endl;
+
     //   double diff_E = ref_E - global_temp.x;
     //   double diff_N = ref_N - global_temp.y;
       
@@ -386,10 +397,10 @@ void LXY2UTM::LidarCallBack(const sensor_msgs::PointCloud2ConstPtr lidar_input_m
     //     }
     //   }
 
-  sensor_msgs::PointCloud2 water_lidar_msg;
-  pcl::toROSMsg(*lidar_output, water_lidar_msg);
-  water_lidar_msg.header.frame_id = lidar_input_msg->header.frame_id;
-  water_lidar_pub_.publish(water_lidar_msg);
+  // sensor_msgs::PointCloud2 water_lidar_msg;
+  // pcl::toROSMsg(*lidar_output, water_lidar_msg);
+  // water_lidar_msg.header.frame_id = lidar_input_msg->header.frame_id;
+  // water_lidar_pub_.publish(water_lidar_msg);
 }
 
 void ReadTxt(void){
